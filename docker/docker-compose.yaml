@@ -1,7 +1,7 @@
 services:
-  postgres:
+  enersight-db:
     image: postgis/postgis:16-3.5-alpine
-    container_name: postgres-db
+    container_name: enersight-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: postgres
@@ -17,6 +17,27 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - enersight-network
+  
+  enersight-worker:
+    build:
+      context: ../enersight-worker
+      dockerfile: ./Dockerfile
+    restart: unless-stopped
+    container_name: enersight-worker
+    depends_on:
+      - enersight-db
+    networks:
+      - enersight-network
+    
+  enersight-job-producer:
+    build:
+      context: ../enersight-worker
+    container_name: enersight-job-producer
+    command: python -m app.ingestion.job_producer
+    depends_on:
+      - enersight-db
     networks:
       - enersight-network
 
