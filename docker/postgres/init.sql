@@ -112,3 +112,8 @@ BEGIN
     RAISE NOTICE 'Roles and database initialized successfully';
 END
 $$;
+
+-- =========================================
+-- 9. PostGIS extension
+-- =========================================
+CREATE EXTENSION IF NOT EXISTS postgis;
