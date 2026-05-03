@@ -1,0 +1,77 @@
+# Git & metadata
+.git
+.gitignore
+.gitattributes
+
+# Python cache / artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc.*
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Testing / coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Logs
+*.log
+logs/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker (avoid recursion / conflicts)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Data files (VERY IMPORTANT for your use case)
+data/
+tmp/
+temp/
+downloads/
+*.zip
+*.tar
+*.gz
+*.gdb
+*.gpkg
+*.shp
+*.dbf
+*.shx
+*.cpg
+*.geojson
+*.csv
+*.parquet
+
+# Large artifacts / exports
+exports/
+output/
+artifacts/
+
+# Notebooks (if any)
+*.ipynb
+
+# Misc
+*.swp
+*.bak
