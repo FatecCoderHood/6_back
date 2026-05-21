@@ -20,6 +20,43 @@ services:
     networks:
       - enersight-network
   
+  enersight-mongo:
+    image: mongo:7.0.34-jammy
+    container_name: enersight-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - enersight_mongo_data:/data/db
+      - ./mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - enersight-network
+
+  mongo-express:
+    image: mongo-express:1.0.2-20-alpine3.19
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: root
+      ME_CONFIG_BASICAUTH_PASSWORD: password
+      ME_CONFIG_MONGODB_URL: mongodb://root:password@enersight-mongo:27017/?authSource=admin
+    depends_on:
+      enersight-mongo:
+        condition: service_healthy
+    networks:
+      - enersight-network
+  
   enersight-worker:
     build:
       context: ../enersight-worker
@@ -27,7 +64,8 @@ services:
     restart: unless-stopped
     container_name: enersight-worker
     depends_on:
-      - enersight-db
+      enersight-db:
+        condition: service_healthy
     networks:
       - enersight-network
     
@@ -37,12 +75,14 @@ services:
     container_name: enersight-job-producer
     command: python -m app.ingestion.job_producer
     depends_on:
-      - enersight-db
+      enersight-db:
+        condition: service_healthy
     networks:
       - enersight-network
 
 volumes:
   enersight_postgres_data:
+  enersight_mongo_data:
 
 networks:
   enersight-network:
