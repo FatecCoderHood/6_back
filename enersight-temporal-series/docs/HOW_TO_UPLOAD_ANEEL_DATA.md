@@ -23,9 +23,9 @@ indicadores-continuidade-coletivos-atributos.csv
 ### In docker folder, make this commands:
 
 #### For copy the files to docker path:
-- docker cp indicadores-continuidade-coletivos-atributos.csv enersight-mongo:/indicadores-continuidade-coletivos-2010-2019.csv
-- docker cp indicadores-continuidade-coletivos-atributos.csv enersight-mongo:/indicadores-continuidade-coletivos-2020-2029.csv
-- docker cp indicadores-continuidade-coletivos-atributos.csv enersight-mongo:/indicadores-continuidade-coletivos-limite.csv
+- docker cp indicadores-continuidade-coletivos-2010-2019.csv enersight-mongo:/indicadores-continuidade-coletivos-2010-2019.csv
+- docker cp indicadores-continuidade-coletivos-2020-2029.csv enersight-mongo:/indicadores-continuidade-coletivos-2020-2029.csv
+- docker cp indicadores-continuidade-coletivos-limite.csv enersight-mongo:/indicadores-continuidade-coletivos-limite.csv
  
 #### For verify if files are in docker path:
 - docker exec -it enersight-mongo ls -lh /indicadores-continuidade-coletivos-limite.csv
@@ -33,9 +33,9 @@ indicadores-continuidade-coletivos-atributos.csv
 - docker exec -it enersight-mongo ls -lh /indicadores-continuidade-coletivos-2020-2029.csv
 
 #### For upload to mongo the ANEEL data:
-- docker exec -it enersight-mongo mongoimport --username root --password password --authenticationDatabase admin --db aneel --collection indicadores_continuidade-limite --type csv --headerline --file /indicadores-continuidade-coletivos-limite.csv --numInsertionWorkers 4
-- docker exec -it enersight-mongo mongoimport --username root --password password --authenticationDatabase admin --db aneel --collection indicadores_continuidade-2010-2019 --type csv --headerline --file /indicadores-continuidade-coletivos-2010-2019.csv --numInsertionWorkers 4
-- docker exec -it enersight-mongo mongoimport --username root --password password --authenticationDatabase admin --db aneel --collection indicadores_continuidade-2020-2029 --type csv --headerline --file /indicadores-continuidade-coletivos-2020-2029.csv --numInsertionWorkers 4
+- docker exec -it enersight-mongo mongoimport --username app_user --password app_password --authenticationDatabase admin --db aneel --collection indicadores_continuidade-limite --type csv --headerline --file /indicadores-continuidade-coletivos-limite.csv --numInsertionWorkers 4
+- docker exec -it enersight-mongo mongoimport --username app_user --password app_password --authenticationDatabase admin --db aneel --collection indicadores_continuidade-2010-2019 --type csv --headerline --file /indicadores-continuidade-coletivos-2010-2019.csv --numInsertionWorkers 4
+- docker exec -it enersight-mongo mongoimport --username app_user --password app_password --authenticationDatabase admin --db aneel --collection indicadores_continuidade-2020-2029 --type csv --headerline --file /indicadores-continuidade-coletivos-2020-2029.csv --numInsertionWorkers 4
 
 
 6º go to http://0.0.0.0:8081/db/aneel/ and verify if these files are in the collection:
