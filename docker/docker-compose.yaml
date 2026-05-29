@@ -48,9 +48,9 @@ services:
     ports:
       - "8081:8081"
     environment:
-      ME_CONFIG_BASICAUTH_USERNAME: root
-      ME_CONFIG_BASICAUTH_PASSWORD: password
-      ME_CONFIG_MONGODB_URL: mongodb://root:password@enersight-mongo:27017/?authSource=admin
+      ME_CONFIG_BASICAUTH_USERNAME: app_user
+      ME_CONFIG_BASICAUTH_PASSWORD: app_password
+      ME_CONFIG_MONGODB_URL: mongodb://app_user:app_password@enersight-mongo:27017/?authSource=admin
     depends_on:
       enersight-mongo:
         condition: service_healthy
@@ -76,6 +76,28 @@ services:
     command: python -m app.ingestion.job_producer
     depends_on:
       enersight-db:
+        condition: service_healthy
+    networks:
+      - enersight-network
+
+  enersight-temporal-series:
+    build:
+      context: ../enersight-temporal-series
+      dockerfile: ./Dockerfile
+    container_name: enersight-temporal-series
+    # Pipeline em lote (roda até concluir). Use `docker compose run --rm
+    # enersight-temporal-series` para disparar sob demanda.
+    restart: "no"
+    environment:
+      MONGO_HOST: enersight-mongo
+      MONGO_PORT: "27017"
+      MONGO_USER: app_user
+      MONGO_PASSWORD: app_password
+      MONGO_AUTH_DB: admin
+      SOURCE_DB: aneel
+      OUTPUT_DB: aneel
+    depends_on:
+      enersight-mongo:
         condition: service_healthy
     networks:
       - enersight-network

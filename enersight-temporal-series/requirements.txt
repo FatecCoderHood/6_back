@@ -1,0 +1,8 @@
+pandas==2.2.3
+numpy==1.26.4
+prophet==1.1.6
+# cmdstanpy 1.3.x exige um 'makefile' que o wheel enxuto do Prophet não inclui
+# (set_cmdstan_path falha → "object has no attribute 'stan_backend'"). 1.2.4 aceita
+# o CmdStan empacotado pelo Prophet.
+cmdstanpy==1.2.4
+pymongo==4.10.1

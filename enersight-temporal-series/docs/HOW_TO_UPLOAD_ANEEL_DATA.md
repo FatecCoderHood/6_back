@@ -23,9 +23,9 @@ indicadores-continuidade-coletivos-atributos.csv
 ### In docker folder, make this commands:
 
 #### For copy the files to docker path:
-- docker cp indicadores-continuidade-coletivos-atributos.csv enersight-mongo:/indicadores-continuidade-coletivos-2010-2019.csv
-- docker cp indicadores-continuidade-coletivos-atributos.csv enersight-mongo:/indicadores-continuidade-coletivos-2020-2029.csv
-- docker cp indicadores-continuidade-coletivos-atributos.csv enersight-mongo:/indicadores-continuidade-coletivos-limite.csv
+- docker cp indicadores-continuidade-coletivos-2010-2019.csv enersight-mongo:/indicadores-continuidade-coletivos-2010-2019.csv
+- docker cp indicadores-continuidade-coletivos-2020-2029.csv enersight-mongo:/indicadores-continuidade-coletivos-2020-2029.csv
+- docker cp indicadores-continuidade-coletivos-limite.csv enersight-mongo:/indicadores-continuidade-coletivos-limite.csv
  
 #### For verify if files are in docker path:
 - docker exec -it enersight-mongo ls -lh /indicadores-continuidade-coletivos-limite.csv
