@@ -80,6 +80,28 @@ services:
     networks:
       - enersight-network
 
+  enersight-temporal-series:
+    build:
+      context: ../enersight-temporal-series
+      dockerfile: ./Dockerfile
+    container_name: enersight-temporal-series
+    # Pipeline em lote (roda até concluir). Use `docker compose run --rm
+    # enersight-temporal-series` para disparar sob demanda.
+    restart: "no"
+    environment:
+      MONGO_HOST: enersight-mongo
+      MONGO_PORT: "27017"
+      MONGO_USER: app_user
+      MONGO_PASSWORD: app_password
+      MONGO_AUTH_DB: enersight_app
+      SOURCE_DB: enersight_app
+      OUTPUT_DB: enersight_app
+    depends_on:
+      enersight-mongo:
+        condition: service_healthy
+    networks:
+      - enersight-network
+
 volumes:
   enersight_postgres_data:
   enersight_mongo_data:
