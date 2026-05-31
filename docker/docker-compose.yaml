@@ -93,9 +93,9 @@ services:
       MONGO_PORT: "27017"
       MONGO_USER: app_user
       MONGO_PASSWORD: app_password
-      MONGO_AUTH_DB: admin
-      SOURCE_DB: aneel
-      OUTPUT_DB: aneel
+      MONGO_AUTH_DB: enersight_app
+      SOURCE_DB: enersight_app
+      OUTPUT_DB: enersight_app
     depends_on:
       enersight-mongo:
         condition: service_healthy

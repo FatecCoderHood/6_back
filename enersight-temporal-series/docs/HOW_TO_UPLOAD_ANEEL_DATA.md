@@ -77,7 +77,3 @@ docker exec -it enersight-mongo mongoimport --username app_user --password app_p
 > You can use mongo-express at: http://0.0.0.0:8081/db/aneel/ 
 
 <img width="1158" height="348" alt="image" src="https://github.com/user-attachments/assets/54297fa5-b257-4e10-81da-f8a3b18c8ddc" />
-
-
-
-  
