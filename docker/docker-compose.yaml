@@ -99,11 +99,12 @@ services:
         condition: service_healthy
     networks:
       - enersight-network
-  enersight-api:
+
+  enersight-temporal-series-api:
     build:
       context: ../enersight-temporal-series
       dockerfile: ./Dockerfile.api
-    container_name: enersight-api
+    container_name: enersight-temporal-series-api
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -112,8 +113,8 @@ services:
       MONGO_PORT: "27017"
       MONGO_USER: app_user
       MONGO_PASSWORD: app_password
-      MONGO_AUTH_DB: admin
-      SOURCE_DB: aneel
+      MONGO_AUTH_DB: enersight_app
+      SOURCE_DB: enersight_app
     depends_on:
       enersight-mongo:
         condition: service_healthy
