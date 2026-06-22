@@ -134,3 +134,4 @@ volumes:
 networks:
   enersight-network:
     driver: bridge
+
