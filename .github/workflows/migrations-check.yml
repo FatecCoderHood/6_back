@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - DevOps
     paths:
       # Roda apenas quando migrations ou código Java mudar
       - 'enersight-api/src/main/resources/db/migration/**'
