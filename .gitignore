@@ -29,3 +29,8 @@ ENV/
 Thumbs.db
 .vscode/
 .idea/
+
+# =========================
+# Local ANEEL data dumps (large, machine-specific — fetched by enersight-worker, not versioned)
+# =========================
+indicadores-continuidade-coletivos-*.csv

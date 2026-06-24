@@ -41,6 +41,45 @@ services:
     networks:
       - enersight-network
 
+  enersight-auth-db:
+    image: postgres:16-alpine
+    container_name: enersight-auth-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: enersight_auth
+      POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-auth_password}
+    volumes:
+      - enersight_auth_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER:-auth_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - enersight-network
+    # No published port: enersight-auth-db is only reachable on the internal network,
+    # isolating the users table from anything outside this service (LGPD data minimization).
+
+  enersight-auth:
+    build:
+      context: ../enersight-auth
+    container_name: enersight-auth
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      DB_URL: jdbc:postgresql://enersight-auth-db:5432/enersight_auth
+      DB_USER: ${AUTH_DB_USER:-auth_user}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth_password}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-please-32bytesmin}
+      SERVER_PORT: "8082"
+    depends_on:
+      enersight-auth-db:
+        condition: service_healthy
+    networks:
+      - enersight-network
+
   mongo-express:
     image: mongo-express:1.0.2-20-alpine3.19
     container_name: mongo-express
@@ -130,6 +169,7 @@ services:
 volumes:
   enersight_postgres_data:
   enersight_mongo_data:
+  enersight_auth_postgres_data:
 
 networks:
   enersight-network:

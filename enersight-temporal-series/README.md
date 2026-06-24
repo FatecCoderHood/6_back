@@ -92,3 +92,34 @@ MONGO_HOST=localhost python -m app
 | `MIN_AMOSTRAS` | `24` | Mínimo de pontos históricos por unidade |
 | `N_CHANGEPOINTS` | `10` | Changepoints do Prophet |
 | `CHECKPOINT` | `500` | Grava previsões a cada N unidades |
+
+## API de consulta (`enersight-temporal-series-api`)
+
+Serviço FastAPI separado (`app/api/main.py`, `Dockerfile.api`) que expõe as previsões já gravadas
+no Mongo para o frontend — não roda o pipeline, só lê `previsoes_prophet`.
+
+| Rota | Descrição |
+|---|---|
+| `GET /previsoes` | Lista paginada (`cod_unidade`, `indicador`, `pagina`, `limite` como filtros) |
+| `GET /previsoes/{cod_unidade}/{indicador}` | Mesma listagem, atalho por unidade+indicador |
+| `GET /health` | Healthcheck (usado pelo compose) |
+
+> ⚠️ **Sem autenticação**: nenhuma rota exige token hoje, e o serviço é publicado na porta 8000 do
+> host via docker-compose. Não exponha esse compose em uma rede não confiável sem adicionar alguma
+> proteção antes.
+
+### Como rodar
+
+```bash
+# a partir de ../docker
+docker compose up -d enersight-mongo
+docker compose up -d enersight-temporal-series-api
+```
+
+Escuta em **`http://localhost:8000`** (Swagger UI em `/docs`).
+
+## Testes
+
+Não há suíte de testes automatizados ainda para este serviço (nem para o pipeline, nem para a
+API). Verificação hoje é manual: rodar o pipeline e inspecionar as collections de destino no
+Mongo, ou chamar `GET /previsoes` e `GET /health` na API e confirmar os dados esperados.
