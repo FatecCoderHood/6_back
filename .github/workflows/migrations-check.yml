@@ -1,0 +1,156 @@
+name: Database Migration Check
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - DevOps
+    paths:
+      # Roda apenas quando migrations ou código Java mudar
+      - 'enersight-api/src/main/resources/db/migration/**'
+      - 'enersight-api/src/**'
+      - 'enersight-api/pom.xml'
+      - 'docker/postgres/**'
+
+jobs:
+  migration-check:
+    name: Validate Flyway Migrations
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.5-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------------
+      # Inicializa o banco igual ao docker/postgres/init.sql
+      # -------------------------------------------------------
+      - name: Initialize database users and permissions
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -f docker/postgres/init.sql
+
+      # -------------------------------------------------------
+      # Java 21 com cache do Maven para builds mais rápidos
+      # -------------------------------------------------------
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # -------------------------------------------------------
+      # Valida nomenclatura das migrations antes de rodar
+      # Garante padrão V{n}__{descrição}.sql
+      # -------------------------------------------------------
+      - name: Validate migration file naming convention
+        run: |
+          echo "Checking migration file naming convention..."
+          INVALID_FILES=()
+
+          for file in enersight-api/src/main/resources/db/migration/*.sql; do
+            filename=$(basename "$file")
+            if ! echo "$filename" | grep -qE '^V[0-9]+__[a-z0-9_]+\.sql$'; then
+              INVALID_FILES+=("$filename")
+            fi
+          done
+
+          if [ ${#INVALID_FILES[@]} -gt 0 ]; then
+            echo "❌ Invalid migration file names found:"
+            for f in "${INVALID_FILES[@]}"; do
+              echo "   - $f (expected format: V{number}__{description_snake_case}.sql)"
+            done
+            exit 1
+          fi
+
+          echo "✅ All migration files follow the naming convention"
+
+      # -------------------------------------------------------
+      # Verifica se não há gaps na numeração das migrations
+      # Ex: V1, V2, V4 (faltou V3) causa falha
+      # -------------------------------------------------------
+      - name: Validate migration version sequence
+        run: |
+          echo "Checking for version sequence gaps..."
+          VERSIONS=()
+
+          for file in enersight-api/src/main/resources/db/migration/V*.sql; do
+            version=$(basename "$file" | grep -oE '^V[0-9]+' | grep -oE '[0-9]+')
+            VERSIONS+=($version)
+          done
+
+          SORTED=($(printf '%s\n' "${VERSIONS[@]}" | sort -n))
+          EXPECTED=1
+
+          for v in "${SORTED[@]}"; do
+            if [ "$v" -ne "$EXPECTED" ]; then
+              echo "❌ Version gap detected: expected V${EXPECTED}, found V${v}"
+              exit 1
+            fi
+            EXPECTED=$((EXPECTED + 1))
+          done
+
+          echo "✅ Migration versions are sequential (V1 to V${#SORTED[@]})"
+
+      # -------------------------------------------------------
+      # Roda o build + testes com Spring Boot Test
+      # O @SpringBootTest sobe o contexto completo, que inclui
+      # o Flyway aplicando todas as migrations no banco de teste
+      # -------------------------------------------------------
+      - name: Build and run migration tests
+        working-directory: enersight-api
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/enersight_app
+          SPRING_FLYWAY_USER: flyway_user
+          SPRING_FLYWAY_PASSWORD: flyway_password
+          SPRING_DATASOURCE_USERNAME: app_user
+          SPRING_DATASOURCE_PASSWORD: app_password
+          JWT_SECRET: dGhpcy1pcy1hLXZlcnktc2VjcmV0LWtleS1mb3ItZW5lcnNpZ2h0LWFwcC0yMDI1
+        run: mvn verify -B
+
+      # -------------------------------------------------------
+      # Exibe o histórico de migrations aplicadas no log
+      # Útil para auditoria no PR
+      # -------------------------------------------------------
+      - name: Show applied migrations history
+        if: success()
+        run: |
+          echo "=== Flyway Migration History ==="
+          PGPASSWORD=flyway_password psql \
+            -h localhost \
+            -U flyway_user \
+            -d enersight_app \
+            -c "SELECT version, description, installed_on, execution_time, success FROM flyway_schema_history ORDER BY installed_rank;"
+
+      # -------------------------------------------------------
+      # Se falhar, mostra quais migrations estavam pendentes
+      # -------------------------------------------------------
+      - name: Show pending migrations on failure
+        if: failure()
+        run: |
+          echo "=== Checking migration files present ==="
+          ls -la enersight-api/src/main/resources/db/migration/
+
+          echo ""
+          echo "=== Attempting to connect and show history ==="
+          PGPASSWORD=flyway_password psql \
+            -h localhost \
+            -U flyway_user \
+            -d enersight_app \
+            -c "SELECT version, description, success FROM flyway_schema_history ORDER BY installed_rank;" \
+            || echo "Could not connect to database"
