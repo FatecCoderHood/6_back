@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /enersight-api
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      spring-boot:
+        patterns: ["org.springframework.boot*"]
+      testing:
+        patterns: ["org.testcontainers*", "org.junit*", "org.mockito*"]
+
+  - package-ecosystem: pip
+    directory: /enersight-worker
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: pip
+    directory: /enersight-temporal-series
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

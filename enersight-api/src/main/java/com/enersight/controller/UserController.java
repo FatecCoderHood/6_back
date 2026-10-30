@@ -1,9 +1,11 @@
 package com.enersight.controller;
 
+import com.enersight.dto.RejectUserRequestDto;
 import com.enersight.dto.UserPrincipal;
 import com.enersight.dto.UserRegisterRequestDto;
 import com.enersight.dto.UserResponseDto;
 import com.enersight.dto.UserTermsHistoryDto;
+import com.enersight.entity.enums.UserStatus;
 import com.enersight.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,14 +29,35 @@ public class UserController {
         return service.register(dto);
     }
 
+    @GetMapping
+    public List<UserResponseDto> list(
+            @RequestParam(required = false) UserStatus status,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        return service.list(currentUser, status);
+    }
+
     @GetMapping("/{id}")
-    public UserResponseDto findById(@PathVariable UUID id) {
-        return service.findById(id);
+    public UserResponseDto findById(@PathVariable UUID id, @AuthenticationPrincipal UserPrincipal currentUser) {
+        return service.findById(currentUser, id);
     }
 
     @PatchMapping("/{id}/approve-access")
-    public UserResponseDto approveAccess(@PathVariable UUID id) {
-        return service.approveAccess(id);
+    public UserResponseDto approveAccess(@PathVariable UUID id, @AuthenticationPrincipal UserPrincipal currentUser) {
+        return service.approveAccess(currentUser, id);
+    }
+
+    @PatchMapping("/{id}/reject")
+    public UserResponseDto reject(
+            @PathVariable UUID id,
+            @Valid @RequestBody RejectUserRequestDto dto,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        return service.reject(currentUser, id, dto.getReason());
+    }
+
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMe(@AuthenticationPrincipal UserPrincipal currentUser) {
+        service.anonymize(currentUser, currentUser.getId());
     }
 
     @DeleteMapping("/{userId}")
@@ -42,12 +65,12 @@ public class UserController {
     public void delete(
             @PathVariable UUID userId,
             @AuthenticationPrincipal UserPrincipal currentUser) {
-
-        service.delete(currentUser, userId);
+        service.anonymize(currentUser, userId);
     }
 
     @GetMapping("/{id}/terms-history")
-    public List<UserTermsHistoryDto> getTermsHistory(@PathVariable UUID id) {
-        return service.getTermsHistory(id);
+    public List<UserTermsHistoryDto> getTermsHistory(
+            @PathVariable UUID id, @AuthenticationPrincipal UserPrincipal currentUser) {
+        return service.getTermsHistory(currentUser, id);
     }
 }
