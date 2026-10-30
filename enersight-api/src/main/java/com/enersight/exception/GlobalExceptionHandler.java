@@ -2,6 +2,7 @@ package com.enersight.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -27,9 +28,15 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
-    @ExceptionHandler(UserInactiveException.class)
-    public ResponseEntity<ErrorResponse> handleForbidden(UserInactiveException ex) {
+    @ExceptionHandler({UserInactiveException.class, UserPendingException.class, UserRejectedException.class,
+            AccessDeniedException.class})
+    public ResponseEntity<ErrorResponse> handleForbidden(RuntimeException ex) {
         return build(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidUserStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidState(InvalidUserStateException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(MandatoryTermsNotAcceptedException.class)
