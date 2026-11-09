@@ -15,7 +15,7 @@
 
     <properties>
         <java.version>17</java.version>
-        <lombok.version>1.18.32</lombok.version>
+        <lombok.version>1.18.48</lombok.version>
         <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
