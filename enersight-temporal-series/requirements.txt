@@ -5,4 +5,4 @@ prophet==1.1.6
 # (set_cmdstan_path falha → "object has no attribute 'stan_backend'"). 1.2.4 aceita
 # o CmdStan empacotado pelo Prophet.
 cmdstanpy==1.2.4
-pymongo==4.10.1
+pymongo==4.19.0
