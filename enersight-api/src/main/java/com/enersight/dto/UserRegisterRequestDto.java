@@ -20,7 +20,7 @@ public class UserRegisterRequestDto {
     private String email;
 
     @NotBlank
-    @Size(min = 8)
+    @Size(min = PasswordPolicy.MIN_LENGTH)
     private String password;
 
     @NotNull

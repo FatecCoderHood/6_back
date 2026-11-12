@@ -11,6 +11,6 @@ public class ChangePasswordRequestDto {
     private String currentPassword;
 
     @NotBlank
-    @Size(min = 8)
+    @Size(min = PasswordPolicy.MIN_LENGTH)
     private String newPassword;
 }
