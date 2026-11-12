@@ -129,6 +129,9 @@ public class UserService {
 
     @Transactional
     public void changePassword(UserPrincipal currentUser, ChangePasswordRequestDto dto) {
+        if (dto.getCurrentPassword().equals(dto.getNewPassword())) {
+            throw new InvalidPasswordChangeException("New password must differ from the current password");
+        }
         User user = getOrThrow(currentUser.getId());
         if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
             throw new InvalidPasswordChangeException("Current password is incorrect");
