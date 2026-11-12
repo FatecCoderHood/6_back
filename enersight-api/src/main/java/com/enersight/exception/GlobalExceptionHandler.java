@@ -34,6 +34,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidPasswordChangeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPasswordChange(InvalidPasswordChangeException ex) {
+        // 400, not 401: the frontend client ends the session on any 401.
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(InvalidUserStateException.class)
     public ResponseEntity<ErrorResponse> handleInvalidState(InvalidUserStateException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());

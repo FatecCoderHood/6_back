@@ -1,5 +1,6 @@
 package com.enersight.service;
 
+import com.enersight.dto.ChangePasswordRequestDto;
 import com.enersight.dto.UserPrincipal;
 import com.enersight.dto.UserRegisterRequestDto;
 import com.enersight.dto.UserResponseDto;
@@ -14,6 +15,7 @@ import com.enersight.entity.enums.DataSubjectRequestType;
 import com.enersight.entity.enums.TermType;
 import com.enersight.entity.enums.UserRole;
 import com.enersight.entity.enums.UserStatus;
+import com.enersight.exception.InvalidPasswordChangeException;
 import com.enersight.exception.InvalidUserStateException;
 import com.enersight.exception.MandatoryTermsNotAcceptedException;
 import com.enersight.exception.ResourceNotFoundException;
@@ -123,6 +125,19 @@ public class UserService {
                     .build());
         }
         auditService.record(currentUser.getId(), AuditAction.ANONYMIZE, targetUserId);
+    }
+
+    @Transactional
+    public void changePassword(UserPrincipal currentUser, ChangePasswordRequestDto dto) {
+        if (dto.getCurrentPassword().equals(dto.getNewPassword())) {
+            throw new InvalidPasswordChangeException("New password must differ from the current password");
+        }
+        User user = getOrThrow(currentUser.getId());
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+            throw new InvalidPasswordChangeException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        userRepository.save(user);
     }
 
     public List<UserTermsHistoryDto> getTermsHistory(UserPrincipal currentUser, UUID userId) {

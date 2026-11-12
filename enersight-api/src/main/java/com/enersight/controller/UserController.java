@@ -1,5 +1,6 @@
 package com.enersight.controller;
 
+import com.enersight.dto.ChangePasswordRequestDto;
 import com.enersight.dto.RejectUserRequestDto;
 import com.enersight.dto.UserPrincipal;
 import com.enersight.dto.UserRegisterRequestDto;
@@ -52,6 +53,14 @@ public class UserController {
             @Valid @RequestBody RejectUserRequestDto dto,
             @AuthenticationPrincipal UserPrincipal currentUser) {
         return service.reject(currentUser, id, dto.getReason());
+    }
+
+    @PatchMapping("/me/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(
+            @Valid @RequestBody ChangePasswordRequestDto dto,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        service.changePassword(currentUser, dto);
     }
 
     @DeleteMapping("/me")

@@ -1,5 +1,6 @@
 package com.enersight.service;
 
+import com.enersight.dto.ChangePasswordRequestDto;
 import com.enersight.dto.UserPrincipal;
 import com.enersight.dto.UserRegisterRequestDto;
 import com.enersight.dto.UserResponseDto;
@@ -12,6 +13,7 @@ import com.enersight.entity.enums.DataSubjectRequestType;
 import com.enersight.entity.enums.TermType;
 import com.enersight.entity.enums.UserRole;
 import com.enersight.entity.enums.UserStatus;
+import com.enersight.exception.InvalidPasswordChangeException;
 import com.enersight.exception.InvalidUserStateException;
 import com.enersight.repository.DataSubjectRequestRepository;
 import com.enersight.repository.TermsOfUseRepository;
@@ -85,6 +87,48 @@ class UserServiceTest {
         assertThat(result.getRole()).isEqualTo(UserRole.USER);
         verify(acceptanceRepository).save(any(UserTermsAcceptance.class));
         verify(auditService).record(userId, AuditAction.REGISTER, userId);
+    }
+
+    // change own password
+
+    private ChangePasswordRequestDto passwordChange(String current, String next) {
+        ChangePasswordRequestDto dto = new ChangePasswordRequestDto();
+        dto.setCurrentPassword(current);
+        dto.setNewPassword(next);
+        return dto;
+    }
+
+    @Test
+    void changePasswordStoresTheNewHashWhenCurrentPasswordMatches() {
+        User user = userWithStatus(userId, UserStatus.ACTIVE);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("old-password", "hash")).thenReturn(true);
+        when(passwordEncoder.encode("new-password-1")).thenReturn("new-hash");
+
+        service.changePassword(regular, passwordChange("old-password", "new-password-1"));
+
+        assertThat(user.getPassword()).isEqualTo("new-hash");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void changePasswordRejectsAWrongCurrentPassword() {
+        User user = userWithStatus(userId, UserStatus.ACTIVE);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> service.changePassword(regular, passwordChange("wrong", "new-password-1")))
+                .isInstanceOf(InvalidPasswordChangeException.class);
+
+        assertThat(user.getPassword()).isEqualTo("hash");
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void changePasswordRejectsANewPasswordEqualToTheCurrentOne() {
+        assertThatThrownBy(() -> service.changePassword(regular, passwordChange("same-password", "same-password")))
+                .isInstanceOf(InvalidPasswordChangeException.class);
+
+        verify(userRepository, never()).save(any());
     }
 
     // approve
