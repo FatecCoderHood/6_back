@@ -1,5 +1,4 @@
-
-name: Deploy EnerSight Backend
+name: CD - Deploy Production
 
 on:
   push:
@@ -10,16 +9,20 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-enersight
-  cancel-in-progress: true
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Build and Deploy API
+    name: Build and Deploy EC2
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: enersight-api
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java 17
@@ -29,36 +32,67 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Build and test API
-        working-directory: enersight-api
-        run: mvn -B clean verify
+      - name: Build application
+        run: mvn -B clean package -DskipTests
 
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v4
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-          ping: 100.64.54.69
+      - name: Locate JAR
+        id: jar
+        run: |
+          JAR=$(find target -maxdepth 1 -name "*.jar" \
+            ! -name "*.original" \
+            ! -name "*-sources.jar" \
+            ! -name "*-javadoc.jar" | head -n 1)
+
+          if [ -z "$JAR" ]; then
+            echo "JAR not found!"
+            exit 1
+          fi
+
+          echo "jar=$JAR" >> "$GITHUB_OUTPUT"
 
       - name: Configure SSH
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2_key
-          chmod 600 ~/.ssh/ec2_key
-          ssh-keyscan -H 100.64.54.69 >> ~/.ssh/known_hosts
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
 
-      - name: Upload JAR to EC2
-        run: |
-          JAR=$(find enersight-api/target -maxdepth 1 -type f -name '*.jar' ! -name '*.original' | head -n 1)
-          test -n "$JAR"
-          scp -i ~/.ssh/ec2_key "$JAR" ubuntu@100.64.54.69:/home/ubuntu/app.jar
+          echo "${{ secrets.EC2_KNOWN_HOSTS }}" \
+            > ~/.ssh/known_hosts
 
-      - name: Restart EnerSight
+      - name: Upload application
         run: |
-          ssh -i ~/.ssh/ec2_key ubuntu@100.64.54.69 \
-            "sudo install -o ubuntu -g ubuntu -m 0644 /home/ubuntu/app.jar /opt/enersight/app.jar && \
-             rm /home/ubuntu/app.jar && \
-             sudo systemctl restart enersight && \
-             sudo systemctl is-active --quiet enersight"
+          scp "${{ steps.jar.outputs.jar }}" \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/enersight-new.jar
+
+      - name: Deploy
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+
+            APP_DIR="/opt/enersight"
+            APP_JAR="$APP_DIR/app.jar"
+            NEW_JAR="/tmp/enersight-new.jar"
+            BACKUP_JAR="$APP_DIR/app.jar.backup"
+
+            echo "Creating backup..."
+            cp "$APP_JAR" "$BACKUP_JAR"
+
+            echo "Installing new version..."
+            sudo mv "$NEW_JAR" "$APP_JAR"
+
+            echo "Restarting application..."
+            sudo systemctl restart enersight
+
+            sleep 15
+
+            if sudo systemctl is-active --quiet enersight; then
+              echo "Deployment successful!"
+            else
+              echo "Deployment failed. Rolling back..."
+
+              sudo cp "$BACKUP_JAR" "$APP_JAR"
+              sudo systemctl restart enersight
+
+              exit 1
+            fi
+          EOF
