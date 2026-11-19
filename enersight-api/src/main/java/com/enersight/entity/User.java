@@ -1,6 +1,7 @@
 package com.enersight.entity;
 
 import com.enersight.entity.enums.UserRole;
+import com.enersight.entity.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -38,6 +39,14 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    @Builder.Default
+    private UserStatus status = UserStatus.ACTIVE;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

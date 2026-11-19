@@ -1,0 +1,98 @@
+name: CD - Deploy Production
+
+on:
+  push:
+    branches:
+      - release
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and Deploy EC2
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: enersight-api
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build application
+        run: mvn -B clean package -DskipTests
+
+      - name: Locate JAR
+        id: jar
+        run: |
+          JAR=$(find target -maxdepth 1 -name "*.jar" \
+            ! -name "*.original" \
+            ! -name "*-sources.jar" \
+            ! -name "*-javadoc.jar" | head -n 1)
+
+          if [ -z "$JAR" ]; then
+            echo "JAR not found!"
+            exit 1
+          fi
+
+          echo "jar=$JAR" >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          echo "${{ secrets.EC2_KNOWN_HOSTS }}" \
+            > ~/.ssh/known_hosts
+
+      - name: Upload application
+        run: |
+          scp "${{ steps.jar.outputs.jar }}" \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/enersight-new.jar
+
+      - name: Deploy
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+
+            APP_DIR="/opt/enersight"
+            APP_JAR="$APP_DIR/app.jar"
+            NEW_JAR="/tmp/enersight-new.jar"
+            BACKUP_JAR="$APP_DIR/app.jar.backup"
+
+            echo "Creating backup..."
+            cp "$APP_JAR" "$BACKUP_JAR"
+
+            echo "Installing new version..."
+            sudo mv "$NEW_JAR" "$APP_JAR"
+
+            echo "Restarting application..."
+            sudo systemctl restart enersight
+
+            sleep 15
+
+            if sudo systemctl is-active --quiet enersight; then
+              echo "Deployment successful!"
+            else
+              echo "Deployment failed. Rolling back..."
+
+              sudo cp "$BACKUP_JAR" "$APP_JAR"
+              sudo systemctl restart enersight
+
+              exit 1
+            fi
+          EOF

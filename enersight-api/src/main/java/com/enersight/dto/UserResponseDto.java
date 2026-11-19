@@ -1,6 +1,7 @@
 package com.enersight.dto;
 
 import com.enersight.entity.enums.UserRole;
+import com.enersight.entity.enums.UserStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -14,6 +15,8 @@ public class UserResponseDto {
     private String name;
     private String email;
     private UserRole role;
+    private UserStatus status;
+    private String rejectionReason;
     private boolean active;
     private OffsetDateTime createdAt;
 }
